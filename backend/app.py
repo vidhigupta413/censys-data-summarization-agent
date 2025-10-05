@@ -49,22 +49,25 @@ def summarize_host():
 
     # This is the prompt engineering step. We format the data and instructions for the LLM.
     prompt = (
-        "You are a cybersecurity expert. Analyze the following host data and provide TWO types of summaries:\n\n"
-        "1. BULLET POINT SUMMARY: Create labeled bullet points covering these categories:\n"
-        "- IP: The unique IP address\n"
-        "- Location: Geographical information (city, country)\n"
-        "- Autonomous System: Network details (ASN, provider name)\n"
-        "- Services: Running services with ports, protocols, and software\n"
-        "- Vulnerabilities: Security issues with CVE IDs and severity levels\n"
-        "- Threat Intelligence: Risk level and security labels\n"
-        "- Malware: Any detected malware or suspicious activity\n\n"
-        "2. PARAGRAPH SUMMARY: A concise, non-technical paragraph highlighting key security findings and recommendations.\n\n"
-        "Format your response as:\n"
+        "Create a security analysis summary. Use EXACTLY this format for every host:\n\n"
         "## Bullet Point Summary\n"
-        "[Your bullet points here]\n\n"
+        "- IP: [IP address]\n"
+        "- Location: [City, Country]\n"
+        "- Autonomous System: [ASN, Provider]\n"
+        "- Services: [All ports and protocols]\n"
+        "- Vulnerabilities: [All CVEs with severities]\n"
+        "- Threat Intelligence: [Risk level and labels]\n\n"
         "## Paragraph Summary\n"
-        "[Your paragraph here]\n\n"
-        f"Host Data (JSON): {json.dumps(host_data, indent=2)}"
+        "5-7 sentence security analysis]\n\n"
+        "STRICT FORMATTING RULES:\n"
+        "- ALWAYS use this exact structure for every host\n"
+        "- ALWAYS include all 6 categories in this order\n"
+        "- Services: ALL ports must be on the SAME LINE after the colon\n"
+        "- Vulnerabilities: ALL CVEs must be on the SAME LINE after the colon\n"
+        "- Threat Intelligence: ALL info must be on the SAME LINE after the colon\n"
+        "- NEVER create sub-bullets for any category\n"
+        "- Keep descriptions concise (max 40 chars per line)\n\n"
+        f"Host Data: {json.dumps(host_data, indent=2)}"
     )
 
     try:
@@ -78,6 +81,37 @@ def summarize_host():
             max_tokens=500,
         )
         summary = response.choices[0].message.content
+        
+        # Post-process to fix formatting issues
+        
+        # Convert sub-bullet ports to inline format
+        import re
+        services_match = re.search(r'- Services:.*?\n((?:\s+- Port.*?\n?)*)', summary, re.MULTILINE | re.DOTALL)
+        if services_match:
+            port_lines = services_match.group(1)
+            ports = re.findall(r'Port [^\n]+', port_lines)
+            if ports:
+                port_text = ', '.join(ports)
+                summary = re.sub(r'- Services:.*?\n(?:\s+- Port.*?\n?)*', f'- Services: {port_text}\n', summary, flags=re.MULTILINE | re.DOTALL)
+        
+        # Convert sub-bullet CVEs to inline format
+        vulnerabilities_match = re.search(r'- Vulnerabilities:.*?\n((?:\s+- CVE-.*?\n?)*)', summary, re.MULTILINE | re.DOTALL)
+        if vulnerabilities_match:
+            cve_lines = vulnerabilities_match.group(1)
+            cves = re.findall(r'CVE-[^\s]+ \([^)]+\)', cve_lines)
+            if cves:
+                cve_text = ', '.join(cves)
+                summary = re.sub(r'- Vulnerabilities:.*?\n(?:\s+- CVE-.*?\n?)*', f'- Vulnerabilities: {cve_text}\n', summary, flags=re.MULTILINE | re.DOTALL)
+        
+        # Convert sub-bullet threat intelligence to inline format
+        threat_match = re.search(r'- Threat Intelligence:.*?\n((?:\s+- .*?\n?)*)', summary, re.MULTILINE | re.DOTALL)
+        if threat_match:
+            threat_lines = threat_match.group(1)
+            threats = re.findall(r'\s+- ([^\n]+)', threat_lines)
+            if threats:
+                threat_text = ', '.join(threats)
+                summary = re.sub(r'- Threat Intelligence:.*?\n(?:\s+- .*?\n?)*', f'- Threat Intelligence: {threat_text}\n', summary, flags=re.MULTILINE | re.DOTALL)
+        
         return jsonify({"ip": ip_to_summarize, "summary": summary})
 
     except Exception as e:
