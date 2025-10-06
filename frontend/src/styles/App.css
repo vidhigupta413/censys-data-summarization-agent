@@ -397,6 +397,11 @@ body {
   color: var(--censys-yellow-accent);
 }
 
+.bullet-item:hover .bullet-text,
+.bullet-item:hover .bullet-category {
+  transition: all 0.3s ease;
+}
+
 .bullet-category {
   font-weight: bold;
   color: var(--censys-text-gray);
@@ -573,4 +578,18 @@ body {
     box-shadow: none;
     border: 1px solid #ccc;
   }
+}
+
+/* Scrambled Text Animation Styles */
+.scrambled-text {
+  transition: font-family 0.2s ease;
+}
+
+.scrambled-text.scrambling {
+  font-family: 'Courier New', monospace;
+  color: var(--censys-text-gray);
+}
+
+.scrambled-text.normal {
+  font-family: inherit;
 }

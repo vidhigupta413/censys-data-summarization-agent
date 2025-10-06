@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import DecryptedText from './DecryptedText';
 import ShinyText from './ShinyText';
+import ScrambledText from './ScrambledText';
 
 const Results = ({ data, ip, onMount }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [hoveredItemIndex, setHoveredItemIndex] = useState(null);
 
   useEffect(() => {
     // Trigger scroll and animation after component mounts
@@ -80,10 +82,30 @@ const Results = ({ data, ip, onMount }) => {
       bulletPointsHtml = (
                <ul className="bullet-list">
                  {bulletItems.map((item, index) => (
-                   <li key={index} className="bullet-item">
-                     <span className="bullet-category">{item.category}:</span>
+                   <li 
+                     key={index} 
+                     className="bullet-item"
+                     onMouseEnter={() => setHoveredItemIndex(index)}
+                     onMouseLeave={() => setHoveredItemIndex(null)}
+                   >
+                     <span className="bullet-category">
+                       <ScrambledText 
+                         text={`${item.category}:`} 
+                         speed={100} 
+                         delay={0}
+                         shouldScramble={hoveredItemIndex === index}
+                       />
+                     </span>
                      {item.description && (
-                       <span className="bullet-text"> {item.description}</span>
+                       <span className="bullet-text">
+                         {' '}
+                         <ScrambledText 
+                           text={item.description} 
+                           speed={120} 
+                           delay={0}
+                           shouldScramble={hoveredItemIndex === index}
+                         />
+                       </span>
                      )}
                    </li>
                  ))}
